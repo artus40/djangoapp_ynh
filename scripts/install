@@ -34,7 +34,7 @@ test ! -e "$final_path" || ynh_die \
  You should safely delete it before installing this app."
 
 # Normalize the url path syntax
-path_url=$(ynh_normalize_url_path $path)
+path_url=${path}
 
 # Path availability
 ynh_webpath_available $domain $path_url
