@@ -1,0 +1,198 @@
+#!/bin/bash
+
+# Source app helpers
+. _common.sh
+. /usr/share/yunohost/helpers
+
+# Exit on command errors and treat unset variables as an error
+set -eu
+
+# ========================================
+# Retrieve arguments from the manifest
+# ========================================
+domain=$1
+path=${2%/}
+password=$3
+is_public=$4
+
+# Get multi-instances specific variables
+app=$YNH_APP_INSTANCE_NAME
+app_nb=$YNH_APP_INSTANCE_NUMBER
+
+# ========================================
+# CHECKS
+# ========================================
+
+# Check password strength
+[[ ${#password} -gt 5 ]] || ynh_die \
+"The password is too weak, it must be longer than 5 characters"
+
+# Check destination directory
+final_path="/var/www/${app}"
+test ! -e "$final_path" || ynh_die \
+"The destination directory '${final_path}' already exists.\
+ You should safely delete it before installing this app."
+
+# Normalize the url path syntax
+path_url=$(ynh_normalize_url_path $path)
+
+# Path availability
+ynh_webpath_available $domain $path_url
+# Register web path
+ynh_webpath_register $app $domain $path_url
+
+# ========================================  
+# Store app settings
+# ========================================  
+
+user="django${app_nb}"
+ynh_app_setting_set "$app" is_public "$is_public"
+ynh_app_setting_set "$app" password "$password"
+ynh_app_setting_set "$app" user "$user"
+
+#TODO: add 'admin' ??
+# ynh_app_setting_set "$app" admin $admin
+
+
+# ========================================
+# INSTALLATION
+# ========================================
+
+# Check dependencies
+ynh_install_app_dependencies python3 virtualenv git
+
+# ========================================
+# USER ACCOUNT
+# ========================================
+sudo useradd -c "${app} user account" \
+    -d "$final_path" -M -g www-data "$user" \
+  || ynh_die "Unable to create user account"
+sudo chpasswd <<< "${user}:${password}"
+
+# Harden SSH connection for the user
+echo "##-> ${app}
+# Hardening user connection
+Match User ${user}
+  ChrootDirectory %h
+  ForceCommand internal-sftp
+  AllowTcpForwarding no
+  PermitTunnel no
+  X11Forwarding no
+##<- ${app}" | sudo tee -a /etc/ssh/sshd_config >/dev/null
+
+# ========================================
+# APPLICATION SETUP
+# ========================================
+project_name="app"
+#TODO: Use socket file instead
+# Find a free port
+port=8080
+netloc="127.0.0.1:8080" #TODO: Multi-instance
+
+# Create virtual environnement
+venv="${final_path}/env"
+sudo virtualenv -p python3 "${venv}"
+source "${venv}/bin/activate"
+# Install framework
+pip install django gunicorn
+
+# ========================================
+# DJANGO PROJECT
+# ========================================
+
+# Create django project
+django_path="${final_path}/${project_name}"
+app_path="${django_path}/${project_name}"
+django-admin startproject $project_name $django_path
+
+# Setup
+
+python "${django_path}/manage.py" migrate
+# Create admin 
+python "${django_path}/manage.py" createsuperuser 
+#TODO: Find some generic and easy procedure
+# Customize settings.py
+
+# Fill out conf/settings.py variables
+# TODO: allowed_hosts, secret_key, script_name
+
+
+
+# Generate secret_key
+echo "generated_secret_key" > "${app_path}/secret.txt"
+
+
+
+# To customize settings, you shall create a 'settings.py' file
+# inside source folder.
+# It shall import django-generated settings with :
+# ```from .base_settings import *```
+if [ -e "../sources/app_settings.py" ]
+then
+    sudo cp ../conf/settings.py "${app_path}/base_settings.py"
+else
+    sudo cp ../conf/settings.py "${app_path}/settings.py"
+fi
+
+# ========================================
+# EMBEDDED APP SETUP
+# ========================================
+
+#TODO: setup from git project or sources folder.
+
+# Copy source files
+# sudo cp -r ../sources "$django_path"
+# if [ -e "../sources/app_settings.py" ]
+# then
+#     sudo cp ../sources/settings.py "${app_path}/settings.py"
+# fi
+# if [ -e "../sources/app_urls.py" ]
+# then
+#     sudo rm "${app_path}/urls.py"
+#     sudo cp ../sources/urls.py "${app_path}/urls.py"
+# fi
+
+# ========================================
+# POST INSTALL
+# ========================================
+
+
+# Set permissions
+sudo chown -hR "${user}:" "$final_path"
+
+# Set SSOwat rules
+[[ $is_public -eq 1 ]] \
+  && ynh_app_setting_set "$app" protected_uris "/"
+
+# Home directory of the user need to be owned by root to allow
+# SFTP connections
+sudo chown root: "$final_path"
+
+# ========================================
+# SERVICES
+# ========================================
+
+# Copy and set nginx configuration
+nginx_conf="/etc/nginx/conf.d/${domain}.d/${app}.conf"
+sed -i "s@{PATH}@${path}@g"                 ../conf/nginx.conf
+sed -i "s@{LOCATION}@${path:-/}@g"          ../conf/nginx.conf
+sed -i "s@{DESTDIR}@${final_path}@g"        ../conf/nginx.conf
+sed -i "s@{NETLOC}@${netloc}@g"             ../conf/nginx.conf
+sed -i "s@{STATICPATH}@${staticpath}@g"     ../conf/nginx.conf
+sed -i "s@{STATICROOT}@${staticroot}@g"     ../conf/nginx.conf
+sudo cp ../conf/nginx.conf "$nginx_conf"
+
+# Copy and set gunicorn service configuration
+gunicorn_name="gunicorn_${user}"
+gunicorn_conf="/etc/systemd/system/${gunicorn_name}.service"
+sed -i "s@{APPUSER}@${user}@g"              ../conf/gunicorn.service
+sed -i "s@{DJANGO_PATH}@${django_path}@g"   ../conf/gunicorn.service
+sed -i "s@{ENV_PATH}@${venv}@g"             ../conf/gunicorn.service
+sed -i "s@{NETLOC}@${netloc}@g"             ../conf/gunicorn.service
+sudo cp ../conf/gunicorn.service "$gunicorn_conf"
+
+# Reload services
+sudo systemctl reload nginx
+sudo systemctl reload ssh
+sudo systemctl enable $gunicorn_name
+sudo systemctl start $gunicorn_name

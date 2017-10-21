@@ -1,0 +1,62 @@
+{
+    "packaging_format": 1,
+    "id": "my_djangoapp",
+    "name": "DjangoApp",
+    "description": {
+        "en": "Custom Web app with Django and SFTP access",
+        "fr": "Application Web personnalisée avec accès SFTP"
+    },
+    "license": "free",
+    "maintainer": {
+        "name": "Arthur Gerbaud",
+        "email": "artus@landoftheunicorn.hd.free.fr"
+    },
+    "multi_instance": true,
+    "requirements": {
+        "yunohost": ">= 2.4.0"
+    },
+    "services": [
+        "nginx"
+    ],
+    "arguments": {
+        "install" : [
+            {
+                "name": "domain",
+                "type": "domain",
+                "ask": {
+                    "en": "Choose a domain for your Webapp",
+                    "fr": "Choisissez un domaine pour votre Webapp"
+                },
+                "example": "domain.org"
+            },
+            {
+                "name": "path",
+                "type": "path",
+                "ask": {
+                    "en": "Choose a path for your Webapp",
+                    "fr": "Choisissez un chemin pour votre Webapp"
+                },
+                "example": "/site",
+                "default": "/site"
+            },
+            {
+                "name": "password",
+                "type": "password",
+                "ask": {
+                    "en": "Set the password for the SFTP access. ≥ 5 character",
+                    "fr": "Définissez le mot de passe pour l'accès SFTP. ≥ cinq charactères"
+                },
+                "example": "myreallystrengthpassword"
+            },
+            {
+                "name": "is_public",
+                "type": "boolean",
+                "ask": {
+                    "en": "Is it a public website?",
+                    "fr": "Est-ce un site public ?"
+                },
+                "default": true
+            }
+       ]
+    }
+}

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Get multi-instances specific variables
+app=$YNH_APP_INSTANCE_NAME
+app_nb=$YNH_APP_INSTANCE_NUMBER
+
+# Source app helpers
+. /usr/share/yunohost/helpers
+
+# Retrieve app settings
+domain=$(ynh_app_setting_get "$app" domain)
+user=$(ynh_app_setting_get "$app" user)
+
+# Delete app directory and configurations
+sudo rm -rf "/var/www/${app}"
+[[ -n $domain ]] && sudo rm -f "/etc/nginx/conf.d/${domain}.d/${app}.conf"
+
+gunicorn_name="gunicorn_${user}"
+gunicorn_conf="/etc/systemd/system/${gunicorn_name}.service"
+sudo rm "$gunicorn_conf"
+# Remove custom SSH configuration
+sudo sed -i "/##-> ${app}/,/##<- ${app}/d" /etc/ssh/sshd_config
+
+# Reload services
+sudo systemctl reload nginx || true
+sudo systemctl reload ssh
+sudo systemctl disable $gunicorn_name
+# Remove the user account
+id "$user" >/dev/null 2>&1 \
+  && sudo deluser --quiet --force "$user" >/dev/null \
+  || true

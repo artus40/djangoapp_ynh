@@ -1,0 +1,72 @@
+#!/bin/bash
+
+set -eu
+
+# Get multi-instances specific variables
+app=$YNH_APP_INSTANCE_NAME
+
+# Source app helpers
+. /usr/share/yunohost/helpers
+
+# Retrieve app settings
+domain=$(ynh_app_setting_get "$app" domain)
+path=$(ynh_app_setting_get "$app" path)
+path=${path%/}
+is_public=$(ynh_app_setting_get "$app" is_public)
+with_mysql=$(ynh_app_setting_get "$app" with_mysql)
+password=$(ynh_app_setting_get "$app" password)
+user=$(ynh_app_setting_get "$app" user)
+
+([[ -n "$with_mysql" ]] && [[ -n "$password" ]] && [[ -n "$user" ]]) \
+  || ynh_die "The app changed and can not be automatically upgraded. \
+You will have to manually upgrade it following those instructions: \
+https://github.com/YunoHost-Apps/my_webapp_ynh#upgrade"
+
+# Check destination directory
+DESTDIR="/var/www/$app"
+[[ ! -d $DESTDIR ]] && ynh_die \
+"The destination directory '$DESTDIR' does not exist.\
+ The app is not correctly installed, you should remove it first."
+
+# Harden SSH connection for the user
+sudo sed -i "/##-> ${app}/,/##<- ${app}/d" /etc/ssh/sshd_config
+echo "##-> ${app}
+# Hardening user connection
+Match User ${user}
+  ChrootDirectory %h
+  ForceCommand internal-sftp
+  AllowTcpForwarding no
+  PermitTunnel no
+  X11Forwarding no
+##<- ${app}" | sudo tee -a /etc/ssh/sshd_config >/dev/null
+
+# Fix permissions
+sudo chown -hR "${user}:" "$DESTDIR"
+
+# Home directory of the user need to be owned by root to allow
+# SFTP connections
+sudo chown root: "$DESTDIR"
+
+# Set SSOwat rules
+[[ $is_public -eq 1 ]] \
+  && ynh_app_setting_set "$app" skipped_uris "/"
+
+# Copy and set nginx configuration
+nginx_conf="/etc/nginx/conf.d/${domain}.d/${app}.conf"
+sed -i "s@{PATH}@${path}@g"        ../conf/nginx.conf
+sed -i "s@{LOCATION}@${path:-/}@g" ../conf/nginx.conf
+sed -i "s@{DESTDIR}@${DESTDIR}@g"  ../conf/nginx.conf
+sed -i "s@{POOLNAME}@${app}@g"     ../conf/nginx.conf
+sudo cp ../conf/nginx.conf "$nginx_conf"
+
+# Copy and set php-fpm configuration
+phpfpm_conf="/etc/php5/fpm/pool.d/${app}.conf"
+sed -i "s@{USER}@${user}@g"       ../conf/php-fpm.conf
+sed -i "s@{POOLNAME}@${app}@g"    ../conf/php-fpm.conf
+sed -i "s@{DESTDIR}@${DESTDIR}@g" ../conf/php-fpm.conf
+sudo cp ../conf/php-fpm.conf "$phpfpm_conf"
+
+# Reload services
+sudo systemctl reload php5-fpm
+sudo systemctl reload nginx
+sudo systemctl reload ssh

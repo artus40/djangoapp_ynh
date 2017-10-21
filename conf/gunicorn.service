@@ -1,0 +1,13 @@
+[Unit]
+Description=gunicorn daemon ({APPUSER})
+After=network.target
+
+[Service]
+User={APPUSER}
+Group=www-data
+WorkingDirectory={DJANGO_PATH}
+ExecStart=//{ENV_PATH}/bin/gunicorn --workers 3 --bind {NETLOC} -e DJANGO_SETTINGS_MODULE=app_settings app.wsgi
+
+[Install]
+WantedBy=multi-user.target
+
