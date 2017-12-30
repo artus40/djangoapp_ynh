@@ -66,21 +66,8 @@ ynh_install_app_dependencies python3 virtualenv git
 # ========================================
 # USER ACCOUNT
 # ========================================
-sudo useradd -c "${app} user account" \
-    -d "$final_path" -M -g www-data "$user" \
-  || ynh_die "Unable to create user account"
-sudo chpasswd <<< "${user}:${password}"
 
-# Harden SSH connection for the user
-#echo "##-> ${app}
-# Hardening user connection
-#Match User ${user}
-#  ChrootDirectory %h
-#  ForceCommand internal-sftp
-#  AllowTcpForwarding no
-#  PermitTunnel no
-#  X11Forwarding no
-##<- ${app}" | sudo tee -a /etc/ssh/sshd_config >/dev/null
+ynh_system_user_create $user
 
 # ========================================
 # APPLICATION SETUP
@@ -91,6 +78,7 @@ venv_setup $final_path
 
 # Install required pip packages
 venv_pip install django gunicorn
+
 # ========================================
 # DJANGO PROJECT
 # ========================================
@@ -101,19 +89,14 @@ django_setup_project $final_path
 # EMBEDDED APP SETUP
 # ========================================
 
-#TODO: setup from git project or sources folder.
+# Install additionnal packages
+# venv_pip install -r ../conf/requirements.txt
 
-# Copy source files
-# sudo cp -r ../sources "$django_path"
-# if [ -e "../sources/app_settings.py" ]
-# then
-#     sudo cp ../sources/settings.py "${app_path}/settings.py"
-# fi
-# if [ -e "../sources/app_urls.py" ]
-# then
-#     sudo rm "${app_path}/urls.py"
-#     sudo cp ../sources/urls.py "${app_path}/urls.py"
-# fi
+# Copy embedded modules
+
+
+# Setup custom settings and urls
+
 
 # ========================================
 # POST INSTALL
@@ -121,11 +104,11 @@ django_setup_project $final_path
 
 
 # Set permissions
-sudo chown -hR "${user}:" "$final_path"
+sudo chown -hR "${user}:" $final_path
 
 # Set SSOwat rules
 [[ $is_public -eq 1 ]] \
-  && ynh_app_setting_set "$app" protected_uris "/"
+  && ynh_app_setting_set $app protected_uris "/"
 
 # Home directory of the user need to be owned by root to allow
 # SFTP connections
