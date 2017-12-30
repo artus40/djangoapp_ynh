@@ -72,14 +72,14 @@ sudo useradd -c "${app} user account" \
 sudo chpasswd <<< "${user}:${password}"
 
 # Harden SSH connection for the user
-echo "##-> ${app}
+#echo "##-> ${app}
 # Hardening user connection
-Match User ${user}
-  ChrootDirectory %h
-  ForceCommand internal-sftp
-  AllowTcpForwarding no
-  PermitTunnel no
-  X11Forwarding no
+#Match User ${user}
+#  ChrootDirectory %h
+#  ForceCommand internal-sftp
+#  AllowTcpForwarding no
+#  PermitTunnel no
+#  X11Forwarding no
 ##<- ${app}" | sudo tee -a /etc/ssh/sshd_config >/dev/null
 
 # ========================================
@@ -90,7 +90,7 @@ Match User ${user}
 venv_setup $final_path
 
 # Install required pip packages
-venv_pip $final_path install django gunicorn
+venv_pip install django gunicorn
 # ========================================
 # DJANGO PROJECT
 # ========================================
