@@ -24,7 +24,6 @@ app_nb=$YNH_APP_INSTANCE_NUMBER
 # CHECKS
 # ========================================
 
-echo "CHECKS"
 # Check password strength
 #[[ ${#password} -gt 5 ]] || ynh_die \
 #"The password is too weak, it must be longer than 5 characters"
@@ -86,11 +85,6 @@ Match User ${user}
 # ========================================
 # APPLICATION SETUP
 # ========================================
-project_name="app"
-#TODO: Use socket file instead
-# Find a free port
-port=8080
-netloc="127.0.0.1:8080" #TODO: Multi-instance
 
 # Create virtual environnement
 venv_setup $final_path
@@ -101,7 +95,7 @@ venv_pip $final_path install django gunicorn
 # DJANGO PROJECT
 # ========================================
 
-setup_django $final_path
+django_setup_project $final_path
 
 # ========================================
 # EMBEDDED APP SETUP
@@ -141,11 +135,17 @@ sudo chown root: "$final_path"
 # SERVICES
 # ========================================
 
+#TODO: Use socket file instead
+# Find a free port
+port=8080
+netloc="127.0.0.1:${port}" #TODO: Multi-instance
+
 # Set nginx configuration
 ynh_replace_string "__NETLOC__" $netloc ../conf/nginx.conf
 ynh_add_nginx_config
 
 # Set gunicorn service configuration
+ynh_replace_string "__NETLOC__" $netloc ../conf/systemd.conf
 ynh_replace_string "__APPUSER__" $user ../conf/systemd.conf
 ynh_add_systemd_config
 

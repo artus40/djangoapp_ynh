@@ -11,59 +11,43 @@ venv_activate() {
 	source "${path}/bin/activate"
 }
 
-# Run pip in venv
-venv_pip() {
-	local path="${1}/env"
-	# ...
-}
-
-venv_python() {
-	local path="${1}/env"
-}
 
 # Setup a django project
 # Arguments are:
 #     - path
-setup_django_project() {
-	
+django_setup_project() {
+
+	# Retrieve arguments
 	base_path=$1
 
+	# Activate virtual env
 	venv_activate $base_path
+
 	# Create django project
 	project_name="app"
 	django_path="${base_path}/${project_name}"
-	app_path="${django_path}/${project_name}"
 	django-admin startproject $project_name $django_path
 
-	# Setup
-
+	# Run database initialization
 	python "${django_path}/manage.py" migrate
-	# Create admin 
-	python "${django_path}/manage.py" createsuperuser 
-	#TODO: Find some generic and easy procedure
-	# Customize settings.py
 
-	# Fill out conf/settings.py variables
-	# TODO: allowed_hosts, secret_key, script_name
+	# Create admin and set a password
+        # TODO: set up a useful admin user (like an existing one in Yunohost)	
+	# WARNING: this uses user, domain and password global variables !
+	python "${django_path}/manage.py" createsuperuser --no-input --username=$user --email="${user}@${domain}"
+	python "${django_path}/manage.py" shell -c "
+from django.contrib.auth.models import User; 
+admin = User.objects.get(username='${user}'); 
+admin.set_password('${password}'); 
+admin.save()"
+}
 
+# Set up custom settings
+django_setup_settings() {
 
+	#TODO: update settings in auto-generated app/settings.py file
+	# Setup allowed_hosts, secret_key and script_name
 
-	# Generate secret_key
-	echo "generated_secret_key" > "${app_path}/secret.txt"
-
-
-
-	# To customize settings, you shall create a 'settings.py' file
-	# inside source folder.
-	# It shall import django-generated settings with :
-	# ```from .base_settings import *```
-	if [ -e "../sources/app_settings.py" ]
-	then
-	    sudo cp ../conf/settings.py "${app_path}/base_settings.py"
-	else
-	    sudo cp ../conf/settings.py "${app_path}/settings.py"
-	fi
-
-
-
+	#TODO: check if a custom 'settings.py' file is in conf, if so, copy it to app/app_settings.py
+	# and use it in gunicorn service
 }
