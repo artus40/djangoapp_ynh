@@ -1,19 +1,20 @@
 #!/bin/bash
 
 # Source app helpers
-. _common.sh
-. /usr/share/yunohost/helpers
+source _common.sh
+source /usr/share/yunohost/helpers
 
 # Exit on command errors and treat unset variables as an error
-set -eu
+ynh_abort_if_errors
 
 # ========================================
 # Retrieve arguments from the manifest
 # ========================================
-domain=$1
-path=${2%/}
-password=$3
-is_public=$4
+
+domain=$YNH_APP_ARG_DOMAIN 
+path_url=$YNH_APP_ARG_PATH
+password=$YNH_APP_ARG_PASSWORD
+is_public=$YNH_APP_ARG_IS_PUBLIC 
 
 # Get multi-instances specific variables
 app=$YNH_APP_INSTANCE_NAME
@@ -30,12 +31,10 @@ echo "CHECKS"
 
 # Check destination directory
 final_path="/var/www/${app}"
-test ! -e "$final_path" || ynh_die \
-"The destination directory '${final_path}' already exists.\
- You should safely delete it before installing this app."
+test ! -e "$final_path" || ynh_die "This path already contains a folder"
 
 # Normalize the url path syntax
-path_url=${path}
+path_url=$(ynh_normalize_url_path $path_url)
 
 # Path availability
 ynh_webpath_available $domain $path_url
@@ -46,10 +45,13 @@ ynh_webpath_register $app $domain $path_url
 # Store app settings
 # ========================================  
 
-user="django${app_nb}"
-ynh_app_setting_set "$app" is_public "$is_public"
-ynh_app_setting_set "$app" password "$password"
-ynh_app_setting_set "$app" user "$user"
+user="djangoapp${app_nb}"
+ynh_app_setting_set $app domain $domain
+ynh_app_setting_set $app path $path_url
+ynh_app_setting_set $app is_public $is_public
+ynh_app_setting_set $app password $password
+ynh_app_setting_set $app user $user
+ynh_app_setting_set $app final_path $final_path
 
 #TODO: add 'admin' ??
 # ynh_app_setting_set "$app" admin $admin
@@ -91,49 +93,15 @@ port=8080
 netloc="127.0.0.1:8080" #TODO: Multi-instance
 
 # Create virtual environnement
-venv="${final_path}/env"
-sudo virtualenv -p python3 "${venv}"
-source "${venv}/bin/activate"
-# Install framework
-pip install django gunicorn
+venv_setup $final_path
 
+# Install required pip packages
+venv_pip $final_path install django gunicorn
 # ========================================
 # DJANGO PROJECT
 # ========================================
 
-# Create django project
-django_path="${final_path}/${project_name}"
-app_path="${django_path}/${project_name}"
-django-admin startproject $project_name $django_path
-
-# Setup
-
-python "${django_path}/manage.py" migrate
-# Create admin 
-python "${django_path}/manage.py" createsuperuser 
-#TODO: Find some generic and easy procedure
-# Customize settings.py
-
-# Fill out conf/settings.py variables
-# TODO: allowed_hosts, secret_key, script_name
-
-
-
-# Generate secret_key
-echo "generated_secret_key" > "${app_path}/secret.txt"
-
-
-
-# To customize settings, you shall create a 'settings.py' file
-# inside source folder.
-# It shall import django-generated settings with :
-# ```from .base_settings import *```
-if [ -e "../sources/app_settings.py" ]
-then
-    sudo cp ../conf/settings.py "${app_path}/base_settings.py"
-else
-    sudo cp ../conf/settings.py "${app_path}/settings.py"
-fi
+setup_django $final_path
 
 # ========================================
 # EMBEDDED APP SETUP
@@ -173,27 +141,11 @@ sudo chown root: "$final_path"
 # SERVICES
 # ========================================
 
-# Copy and set nginx configuration
-nginx_conf="/etc/nginx/conf.d/${domain}.d/${app}.conf"
-sed -i "s@{PATH}@${path}@g"                 ../conf/nginx.conf
-sed -i "s@{LOCATION}@${path:-/}@g"          ../conf/nginx.conf
-sed -i "s@{DESTDIR}@${final_path}@g"        ../conf/nginx.conf
-sed -i "s@{NETLOC}@${netloc}@g"             ../conf/nginx.conf
-sed -i "s@{STATICPATH}@${staticpath}@g"     ../conf/nginx.conf
-sed -i "s@{STATICROOT}@${staticroot}@g"     ../conf/nginx.conf
-sudo cp ../conf/nginx.conf "$nginx_conf"
+# Set nginx configuration
+ynh_replace_string "__NETLOC__" $netloc ../conf/nginx.conf
+ynh_add_nginx_config
 
-# Copy and set gunicorn service configuration
-gunicorn_name="gunicorn_${user}"
-gunicorn_conf="/etc/systemd/system/${gunicorn_name}.service"
-sed -i "s@{APPUSER}@${user}@g"              ../conf/gunicorn.service
-sed -i "s@{DJANGO_PATH}@${django_path}@g"   ../conf/gunicorn.service
-sed -i "s@{ENV_PATH}@${venv}@g"             ../conf/gunicorn.service
-sed -i "s@{NETLOC}@${netloc}@g"             ../conf/gunicorn.service
-sudo cp ../conf/gunicorn.service "$gunicorn_conf"
+# Set gunicorn service configuration
+ynh_replace_string "__APPUSER__" $user ../conf/systemd.conf
+ynh_add_systemd_config
 
-# Reload services
-sudo systemctl reload nginx
-sudo systemctl reload ssh
-sudo systemctl enable $gunicorn_name
-sudo systemctl start $gunicorn_name

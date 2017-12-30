@@ -1,0 +1,16 @@
+[Unit]
+Description=gunicorn daemon (__APP__)
+After=network.target
+
+[Service]
+User=__APPUSER__
+Group=www-data
+WorkingDirectory=__FINALPATH__/app/
+ExecStart=//__FINALPATH__/env/bin/gunicorn \
+--workers 3 \
+--bind __NETLOC__ \
+-e DJANGO_SETTINGS_MODULE=app_settings app.wsgi
+
+[Install]
+WantedBy=multi-user.target
+
