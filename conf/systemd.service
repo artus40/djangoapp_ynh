@@ -9,7 +9,7 @@ WorkingDirectory=__FINALPATH__/app/
 ExecStart=//__FINALPATH__/env/bin/gunicorn \
 --workers 3 \
 --bind __NETLOC__ \
--e DJANGO_SETTINGS_MODULE=app_settings app.wsgi
+-e DJANGO_SETTINGS_MODULE=prod_settings app.wsgi
 
 [Install]
 WantedBy=multi-user.target

@@ -61,12 +61,45 @@ admin.save()"
 	venv_deactivate
 }
 
+# Install a module located in django/ base folder.
+# Takes the module name as only argument.
+django_install_from_folder() {
+	local module_name=$1
+	# Copy files
+	cp -r ../django/${module_name} ${django_path}/
+	# Update database
+	venv_activate
+	python $django_path/manage.py makemigrations $module_name
+	python $django_path/manage.py migrate
+	venv_deactivate
+}
+
 # Set up custom settings
-#django_setup_settings() {
+django_setup_settings_and_urls() {
 
-	#TODO: update settings in auto-generated app/settings.py file
-	# Setup allowed_hosts, secret_key and script_name
+	# Settings
+	secret_key="generated_secret_key" #TODO!
+	domain="192.168.0.1"
 
-	#TODO: check if a custom 'settings.py' file is in conf, if so, copy it to app/app_settings.py
-	# and use it in gunicorn service
-#}
+	# Import settings.py from 'conf' folder, if any.
+	settings_pypath="app.settings"
+	[[ -e ../conf/settings.py ]] && \
+		cp ../conf/settings.py "${django_path}/app_settings.py"
+		settings_pypath=".app_settings"
+
+	
+	# Create a 'prod_settings.py' conf file to use with gunicorn service
+	echo "\
+from ${settings_pypath} import *
+
+ALLOWED_HOSTS = ['${domain}',]
+SECRET_KEY = '${secret_key}'
+
+DEBUG = False
+	" > $django_path/prod_settings.py
+
+	# Override defaults urls conf from project folder
+	[[ -e ../conf/urls.py ]] && \
+		cp ../conf/urls.py "${django_path}/${project_name}/urls.py"
+}
+
