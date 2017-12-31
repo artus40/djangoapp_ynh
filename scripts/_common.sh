@@ -22,20 +22,23 @@ venv_deactivate() {
 	deactivate
 }
 
-# Setup a django project
-# Arguments are:
-#     - path
+# Setup a django project named 'app' at given path.
+# It reaches `$user`, `$domain` and `$password` variables (must be set) 
+# to define the admin user credentials.
 django_setup_project() {
 
 	# Retrieve arguments
 	base_path=$1
+	project_name="app"
 
+	# Create base folder for django
+	django_path="${base_path}/${project_name}"
+	mkdir -p $django_path
+	
 	# Activate virtual env
 	venv_activate
 
 	# Create django project
-	project_name="app"
-	django_path="${base_path}/${project_name}"
 	django-admin startproject $project_name $django_path
 
 	# Run database initialization
@@ -43,13 +46,19 @@ django_setup_project() {
 
 	# Create admin and set a password
         # TODO: set up a useful admin user (like an existing one in Yunohost)	
+	# mail=$(ynh_get_user_info $admin mail)
+
 	# WARNING: this uses user, domain and password global variables !
-	python "${django_path}/manage.py" createsuperuser --no-input --username=$user --email="${user}@${domain}"
+	mail="${user}@${domain}"
 	python "${django_path}/manage.py" shell -c "\
 from django.contrib.auth.models import User; \
-admin = User.objects.get(username='${user}'); \
-admin.set_password('${password}'); \
+admin = User.objects.create_superuser('${user}', \
+                           email='${mail}', \
+			   password='${password}'); \
 admin.save()"
+
+	# Before exit
+	venv_deactivate
 }
 
 # Set up custom settings
