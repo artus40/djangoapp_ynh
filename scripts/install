@@ -89,19 +89,21 @@ django_setup_project $final_path
 # EMBEDDED APP SETUP
 # ========================================
 
+# Import urls and settings from 'conf' files
+# django_setup_settings_and_urls
+
 # Install additionnal packages
+# From requirements file
 # venv_pip install -r ../conf/requirements.txt
-
 # Copy embedded modules
+# django_install_from_folder 'module_name'
 
-
-# Setup custom settings and urls
-
+# Finalize production setup
+# Collect static files
 
 # ========================================
 # POST INSTALL
 # ========================================
-
 
 # Set permissions
 sudo chown -hR "${user}:" $final_path
