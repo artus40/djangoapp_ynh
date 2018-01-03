@@ -15,7 +15,9 @@ venv_pip() {
 # $venv_path must be set ! 
 # It usually is by running venv_setup
 venv_activate() {
+	set +o nounset
 	source "${venv_path}/bin/activate"
+	set -o nounset
 }
 
 venv_deactivate() {
