@@ -21,7 +21,9 @@ venv_activate() {
 }
 
 venv_deactivate() {
+	set +o nounset
 	deactivate
+	set -o nounset
 }
 
 # Setup a django project named 'app' at given path.
