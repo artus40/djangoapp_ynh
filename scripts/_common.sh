@@ -87,8 +87,8 @@ django_setup_settings_and_urls() {
 	# Import settings.py from 'conf' folder, if any.
 	settings_pypath="app.settings"
 	[[ -e ../conf/settings.py ]] && \
-		cp ../conf/settings.py "${django_path}/app_settings.py"
-		settings_pypath=".app_settings"
+		cp ../conf/settings.py "${django_path}/custom_settings.py"
+		settings_pypath=".custom_settings"
 
 	
 	# Create a 'prod_settings.py' conf file to use with gunicorn service
@@ -102,7 +102,7 @@ DEBUG = False
 	" > $django_path/prod_settings.py
 
 	# Override defaults urls conf from project folder
-	[[ -e ../django/urls.py ]] && \
-		cp ../conf/urls.py "${django_path}/${project_name}/urls.py"
+	#[[ -e ../django/urls.py ]] && \
+	#	cp ../conf/urls.py "${django_path}/${project_name}/urls.py"
 }
 

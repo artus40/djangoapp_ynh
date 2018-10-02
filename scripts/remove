@@ -10,7 +10,7 @@ app_nb=$YNH_APP_INSTANCE_NUMBER
 # Retrieve app settings
 domain=$(ynh_app_setting_get "$app" domain)
 user=$(ynh_app_setting_get "$app" user)
-final_path=$(ynh_app_settings_get "$app" final_path)
+final_path=$(ynh_app_setting_get "$app" final_path)
 
 # TODO: Kill the gunicorn service
 
