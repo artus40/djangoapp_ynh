@@ -3,8 +3,8 @@
     "name": "DjangoApp",
     "packaging_format": 1,
     "description": {
-        "en": "Custom Web app with Django and SFTP access",
-        "fr": "Application Web personnalisée avec accès SFTP"
+        "en": "Custom Django application template",
+        "fr": "Modèle d'application Django personnalisée"
     },
     "license": "free",
     "maintainer": {
