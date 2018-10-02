@@ -39,6 +39,14 @@
                 "example": "/site",
                 "default": "/site"
             },
+ 	    {
+                "name": "admin",
+                "type": "user",
+                "ask": {
+                    "en": "Choose the admin user for your Webapp",
+                    "fr": "Choisissez un administrateur pour votre application"
+                },
+            },
             {
                 "name": "password",
                 "type": "password",

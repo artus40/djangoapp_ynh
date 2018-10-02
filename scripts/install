@@ -14,7 +14,8 @@ ynh_abort_if_errors
 domain=$YNH_APP_ARG_DOMAIN 
 path_url=$YNH_APP_ARG_PATH
 password=$YNH_APP_ARG_PASSWORD
-is_public=$YNH_APP_ARG_IS_PUBLIC 
+is_public=$YNH_APP_ARG_IS_PUBLIC
+admin=$YNH_APP_ARG_ADMIN
 
 # Get multi-instances specific variables
 app=$YNH_APP_INSTANCE_NAME
@@ -49,11 +50,9 @@ ynh_app_setting_set $app domain $domain
 ynh_app_setting_set $app path $path_url
 ynh_app_setting_set $app is_public $is_public
 ynh_app_setting_set $app password $password
-ynh_app_setting_set $app user $user
 ynh_app_setting_set $app final_path $final_path
-
-#TODO: add 'admin' ??
-# ynh_app_setting_set "$app" admin $admin
+ynh_app_setting_set $app user $user
+ynh_app_setting_set $app admin $admin
 
 
 # ========================================
@@ -90,7 +89,7 @@ django_setup_project $final_path
 # ========================================
 
 # Import urls and settings from 'conf' files
-# django_setup_settings_and_urls
+django_setup_settings_and_urls
 
 # Install additionnal packages
 # From requirements file

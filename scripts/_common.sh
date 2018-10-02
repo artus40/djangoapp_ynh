@@ -53,10 +53,10 @@ django_setup_project() {
 	# mail=$(ynh_get_user_info $admin mail)
 
 	# WARNING: this uses user, domain and password global variables !
-	mail="${user}@${domain}"
+	mail="${admin}@${domain}"
 	python "${django_path}/manage.py" shell -c "\
 from django.contrib.auth.models import User; \
-admin = User.objects.create_superuser('${user}', \
+admin = User.objects.create_superuser('${admin}', \
                            email='${mail}', \
 			   password='${password}'); \
 admin.save()"
@@ -83,7 +83,6 @@ django_setup_settings_and_urls() {
 
 	# Settings
 	secret_key="generated_secret_key" #TODO!
-	domain="192.168.0.1"
 
 	# Import settings.py from 'conf' folder, if any.
 	settings_pypath="app.settings"
@@ -103,7 +102,7 @@ DEBUG = False
 	" > $django_path/prod_settings.py
 
 	# Override defaults urls conf from project folder
-	[[ -e ../conf/urls.py ]] && \
+	[[ -e ../django/urls.py ]] && \
 		cp ../conf/urls.py "${django_path}/${project_name}/urls.py"
 }
 
