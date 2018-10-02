@@ -96,7 +96,7 @@ django_setup_settings_and_urls() {
 from ${settings_pypath} import *
 
 ALLOWED_HOSTS = ['${domain}',]
-SECRET_KEY = '${secret_key}'
+# SECRET_KEY = '${secret_key}'
 
 DEBUG = False
 	" > $django_path/prod_settings.py
