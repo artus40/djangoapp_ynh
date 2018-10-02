@@ -17,7 +17,7 @@ final_path=$(ynh_app_setting_get "$app" final_path)
 # Delete app directory and configurations
 ynh_secure_remove "$final_path"
 ynh_remove_nginx_config
-ynh_remove_system_config
+ynh_remove_systemd_config
 
 # Remove the user account
 ynh_system_user_delete $user
