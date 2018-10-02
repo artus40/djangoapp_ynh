@@ -1,7 +1,7 @@
 {
-    "packaging_format": 1,
     "id": "my_djangoapp",
     "name": "DjangoApp",
+    "packaging_format": 1,
     "description": {
         "en": "Custom Web app with Django and SFTP access",
         "fr": "Application Web personnalisée avec accès SFTP"
@@ -43,8 +43,8 @@
                 "name": "password",
                 "type": "password",
                 "ask": {
-                    "en": "Set the password for the SFTP access. ≥ 5 character",
-                    "fr": "Définissez le mot de passe pour l'accès SFTP. ≥ cinq charactères"
+                    "en": "Set the password for the django admin",
+                    "fr": "Définissez le mot de passe pour l'administrateur"
                 },
                 "example": "myreallystrengthpassword"
             },

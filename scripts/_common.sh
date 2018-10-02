@@ -2,8 +2,8 @@
 
 # Setup a virtual environnement
 venv_setup() {
-	venv_path="${final_path}/env"
-	sudo virtualenv -p python3 $path
+	venv_path="$1/env"
+	python3 -m venv $venv_path
 }
 
 venv_pip() {
@@ -15,9 +15,7 @@ venv_pip() {
 # $venv_path must be set ! 
 # It usually is by running venv_setup
 venv_activate() {
-	set +o nounset
 	source "${venv_path}/bin/activate"
-	set -o nounset
 }
 
 venv_deactivate() {
