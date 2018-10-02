@@ -12,6 +12,8 @@ domain=$(ynh_app_setting_get "$app" domain)
 user=$(ynh_app_setting_get "$app" user)
 final_path=$(ynh_app_settings_get "$app" final_path)
 
+# TODO: Kill the gunicorn service
+
 # Delete app directory and configurations
 ynh_secure_remove "$final_path"
 ynh_remove_nginx_config
