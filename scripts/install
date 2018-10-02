@@ -61,7 +61,7 @@ ynh_app_setting_set $app final_path $final_path
 # ========================================
 
 # Check dependencies
-ynh_install_app_dependencies python3 virtualenv git
+ynh_install_app_dependencies python3 python3-venv git
 
 # ========================================
 # USER ACCOUNT
