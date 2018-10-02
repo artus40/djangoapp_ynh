@@ -85,15 +85,15 @@ django_setup_settings_and_urls() {
 	secret_key="generated_secret_key" #TODO!
 
 	# Import settings.py from 'conf' folder, if any.
-	settings_pypath="app.settings"
+	settings_filename="settings"
 	[[ -e ../conf/settings.py ]] && \
-		cp ../conf/settings.py "${django_path}/custom_settings.py"
-		settings_pypath=".custom_settings"
+		cp ../conf/settings.py "${django_path}/${project_name}/custom_settings.py"
+		settings_filename="custom_settings"
 
 	
 	# Create a 'prod_settings.py' conf file to use with gunicorn service
 	echo "\
-from ${settings_pypath} import *
+from ${project_name}.${settings_filename} import *
 
 ALLOWED_HOSTS = ['${domain}',]
 # SECRET_KEY = '${secret_key}'
