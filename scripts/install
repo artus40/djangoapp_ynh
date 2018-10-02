@@ -114,7 +114,7 @@ sudo chown -hR "${user}:" $final_path
 
 # Home directory of the user need to be owned by root to allow
 # SFTP connections
-sudo chown root: "$final_path"
+# sudo chown root: "$final_path"
 
 # ========================================
 # SERVICES
