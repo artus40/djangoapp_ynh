@@ -12,13 +12,13 @@ ynh_abort_if_errors
 domain=$YNH_APP_ARG_DOMAIN 
 path_url=$YNH_APP_ARG_PATH
 password=$YNH_APP_ARG_PASSWORD
-is_public=$YNH_APP_ARG_IS_PUBLIC
 admin=$YNH_APP_ARG_ADMIN
 # Get multi-instances specific variables
 app=$YNH_APP_INSTANCE_NAME
 app_nb=$YNH_APP_INSTANCE_NUMBER
 # Generate a unique username
 user="${app}__${app_nb}"
+# Have extra arguments ? Put them below...
 
 # ========================================
 # CHECKS
@@ -49,8 +49,8 @@ ynh_app_setting_set $app password $password
 # ========================================
 # INSTALLATION
 # ========================================
+echo "Beginning installation..." >&2
 
-echo "Begin installation..." >&2
 # Check dependencies
 ynh_install_app_dependencies python3 python3-venv git
 # Create user account
@@ -59,45 +59,43 @@ ynh_system_user_create $user
 # ========================================
 # DJANGO APPLICATION SETUP
 # ========================================
+echo "Setting up django project..." >&2
 
-echo "Setup django project..." >&2
 # Create virtual environnement
 venv_setup $final_path
 # Install required pip packages
 venv_pip install django gunicorn
 # Setup new Django project
 django_setup_project $final_path
-echo "Done." >&1
-
-# ========================================
-# SPECIFIC TO APP SETUP
-# ========================================
-
-echo "Setup application..." >&2
 # Import urls and settings from 'django/' 
 django_setup_settings_and_urls
 # Install additionnal packages
 venv_pip install -r ../django/requirements.txt
-# Copy embedded modules
-django_install_from_folder 'core'
-# Collect static files
-venv_activate
-django-admin collectstatic
-venv_deactivate
+
+# ========================================
+# SPECIFIC TO APP SETUP
+# ========================================
+echo "Setting up application..." >&2
+
+# Copy your embedded modules
+# django_install_from_folder 'module_name'
 
 # ========================================
 # POST INSTALL
 # ========================================
-
 echo "Finalizing..." >&2
+
+# Collect static files
+venv_activate
+django-admin collectstatic
+venv_deactivate
 # Set permissions
 sudo chown -hR "${user}:" $final_path
 
 # ========================================
 # SERVICES
 # ========================================
-
-echo "Services setup..." >&2
+echo "Setting up services..." >&2
 # Use socket file
 socket_name="gunicorn.sock"
 netloc="unix:${django_path}/${socket_name}" 
