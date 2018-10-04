@@ -17,11 +17,9 @@ venv_pip() {
 venv_activate() {
 	set +o nounset
 	source "${venv_path}/bin/activate"
-	set -o nounset
 }
 
 venv_deactivate() {
-	set +o nounset
 	deactivate
 	set -o nounset
 }
@@ -44,7 +42,8 @@ django_setup_project() {
 
 	# Create django project
 	django-admin startproject $project_name $django_path
-
+        export PYTHONPATH=$PYTHONPATH:${django_path} 
+	
 	# Run database initialization
 	python "${django_path}/manage.py" migrate
 
@@ -73,8 +72,8 @@ django_install_from_folder() {
 	cp -r ../django/${module_name} ${django_path}/
 	# Update database
 	venv_activate
-	python $django_path/manage.py makemigrations $module_name
-	python $django_path/manage.py migrate
+	django-admin makemigrations $module_name 
+	django-admin migrate
 	venv_deactivate
 }
 
@@ -86,8 +85,8 @@ django_setup_settings_and_urls() {
 
 	# Import settings.py from 'conf' folder, if any.
 	settings_filename="settings"
-	[[ -e ../conf/settings.py ]] && \
-		cp ../conf/settings.py "${django_path}/${project_name}/custom_settings.py"
+	[[ -e ../django/settings.py ]] && \
+		cp ../django/settings.py "${django_path}/${project_name}/custom_settings.py"
 		settings_filename="custom_settings"
 
 	
@@ -98,11 +97,17 @@ from ${project_name}.${settings_filename} import *
 ALLOWED_HOSTS = ['${domain}',]
 # SECRET_KEY = '${secret_key}'
 
-DEBUG = False
+STATIC_URL = '${path_url}/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+FORCE_SCRIPT_NAME = '${path_url}'
+DEBUG = True
 	" > $django_path/prod_settings.py
 
+
+        export DJANGO_SETTINGS_MODULE=prod_settings
+
 	# Override defaults urls conf from project folder
-	#[[ -e ../django/urls.py ]] && \
-	#	cp ../conf/urls.py "${django_path}/${project_name}/urls.py"
+	[[ -e ../django/urls.py ]] && \
+		cp ../django/urls.py "${django_path}/${project_name}/urls.py"
 }
 

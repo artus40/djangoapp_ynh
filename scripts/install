@@ -3,39 +3,32 @@
 # Source app helpers
 source _common.sh
 source /usr/share/yunohost/helpers
-
 # Exit on command errors and treat unset variables as an error
 ynh_abort_if_errors
 
 # ========================================
 # Retrieve arguments from the manifest
 # ========================================
-
 domain=$YNH_APP_ARG_DOMAIN 
 path_url=$YNH_APP_ARG_PATH
 password=$YNH_APP_ARG_PASSWORD
 is_public=$YNH_APP_ARG_IS_PUBLIC
 admin=$YNH_APP_ARG_ADMIN
-
 # Get multi-instances specific variables
 app=$YNH_APP_INSTANCE_NAME
 app_nb=$YNH_APP_INSTANCE_NUMBER
+# Generate a unique username
+user="${app}__${app_nb}"
 
 # ========================================
 # CHECKS
 # ========================================
 
-# Check password strength
-#[[ ${#password} -gt 5 ]] || ynh_die \
-#"The password is too weak, it must be longer than 5 characters"
-
 # Check destination directory
 final_path="/var/www/${app}"
 test ! -e "$final_path" || ynh_die "This path already contains a folder"
-
 # Normalize the url path syntax
 path_url=$(ynh_normalize_url_path $path_url)
-
 # Path availability
 ynh_webpath_available $domain $path_url
 # Register web path
@@ -45,91 +38,76 @@ ynh_webpath_register $app $domain $path_url
 # Store app settings
 # ========================================  
 
-user="djangoapp${app_nb}"
 ynh_app_setting_set $app domain $domain
 ynh_app_setting_set $app path $path_url
 ynh_app_setting_set $app is_public $is_public
-ynh_app_setting_set $app password $password
 ynh_app_setting_set $app final_path $final_path
 ynh_app_setting_set $app user $user
 ynh_app_setting_set $app admin $admin
-
+ynh_app_setting_set $app password $password
 
 # ========================================
 # INSTALLATION
 # ========================================
 
+echo "Begin installation..." >&2
 # Check dependencies
 ynh_install_app_dependencies python3 python3-venv git
-
-# ========================================
-# USER ACCOUNT
-# ========================================
-
+# Create user account
 ynh_system_user_create $user
 
 # ========================================
-# APPLICATION SETUP
+# DJANGO APPLICATION SETUP
 # ========================================
 
+echo "Setup django project..." >&2
 # Create virtual environnement
 venv_setup $final_path
-
 # Install required pip packages
 venv_pip install django gunicorn
-
-# ========================================
-# DJANGO PROJECT
-# ========================================
-
+# Setup new Django project
 django_setup_project $final_path
+echo "Done." >&1
 
 # ========================================
-# EMBEDDED APP SETUP
+# SPECIFIC TO APP SETUP
 # ========================================
 
-# Import urls and settings from 'conf' files
+echo "Setup application..." >&2
+# Import urls and settings from 'django/' 
 django_setup_settings_and_urls
-
 # Install additionnal packages
-# From requirements file
-# venv_pip install -r ../conf/requirements.txt
+venv_pip install -r ../django/requirements.txt
 # Copy embedded modules
-# django_install_from_folder 'module_name'
-
-# Finalize production setup
+django_install_from_folder 'core'
 # Collect static files
+venv_activate
+django-admin collectstatic
+venv_deactivate
 
 # ========================================
 # POST INSTALL
 # ========================================
 
+echo "Finalizing..." >&2
 # Set permissions
 sudo chown -hR "${user}:" $final_path
-
-# Set SSOwat rules
-[[ $is_public -eq 1 ]] \
-  && ynh_app_setting_set $app protected_uris "/"
-
-# Home directory of the user need to be owned by root to allow
-# SFTP connections
-# sudo chown root: "$final_path"
 
 # ========================================
 # SERVICES
 # ========================================
 
-#TODO: Use socket file instead
-# Find a free port
-port=8080
-netloc="127.0.0.1:${port}" #TODO: Multi-instance
+echo "Services setup..." >&2
+# Use socket file
+socket_name="gunicorn.sock"
+netloc="unix:${django_path}/${socket_name}" 
 
 # Set nginx configuration
 ynh_replace_string "__NETLOC__" $netloc ../conf/nginx.conf
 ynh_add_nginx_config
 
 # Set gunicorn service configuration
-ynh_replace_string "__NETLOC__" $netloc ../conf/systemd.service
+ynh_replace_string "__NETLOC__" $socket_name ../conf/systemd.service
 ynh_replace_string "__APPUSER__" $user ../conf/systemd.service
 ynh_add_systemd_config
-
+service $app restart

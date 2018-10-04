@@ -8,7 +8,7 @@ Group=www-data
 WorkingDirectory=__FINALPATH__/app/
 ExecStart=//__FINALPATH__/env/bin/gunicorn \
 --workers 3 \
---bind __NETLOC__ \
+--bind unix:__NETLOC__ \
 -e DJANGO_SETTINGS_MODULE=prod_settings app.wsgi
 
 [Install]
