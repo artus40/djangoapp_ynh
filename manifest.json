@@ -8,8 +8,8 @@
     },
     "license": "free",
     "maintainer": {
-        "name": "Arthur Gerbaud",
-        "email": "artus@landoftheunicorn.hd.free.fr"
+        "name": "Your name",
+        "email": "mail@your.domain"
     },
     "multi_instance": true,
     "requirements": {
@@ -54,17 +54,8 @@
                     "en": "Set the password for the django admin",
                     "fr": "Définissez le mot de passe pour l'administrateur"
                 },
-                "example": "myreallystrengthpassword"
-            },
-            {
-                "name": "is_public",
-                "type": "boolean",
-                "ask": {
-                    "en": "Is it a public website?",
-                    "fr": "Est-ce un site public ?"
-                },
-                "default": true
+                "example": "myreallystrongpassword"
             }
-       ]
+        ]
     }
 }
