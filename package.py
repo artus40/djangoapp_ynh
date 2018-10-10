@@ -81,6 +81,13 @@ class Step:
         self.lines_printed += 1
         return input(f"{msg}> ")
 
+    def ask_confirmation(self, msg):
+        answer = None
+        while answer not in ("y", "n"):
+            answer = self.ask(f"{msg} (y/n)")
+        return True if answer == "y" else False
+        
+
     def copy_file(self, src):
         """ Copy a file to the settings folder """
         shutil.copy(src, self.opts['settings_dir'])
@@ -153,9 +160,8 @@ class FindSettings(Step):
                 return True
 
         def _ask_user():
-            exists = self.ask(
-                "I did not find any custom settings. Do you have some ? (y/n)")
-            if exists == "n":
+            if not self.ask_confirmation(
+                    "I did not find any custom settings. Do you have some ?"):
                 return False
             name = self.ask("Where are they located ?")  # Ask for the filename
             settings = self.opts['project_dir'].glob(f"**/{name}")
@@ -224,15 +230,14 @@ class FindRequirements(Step):
             self.copy_file(req)
             return True
         else:
-            want_some = self.ask(
-                    "I could not find any requirements.txt. Create one ? (y/n)")
-            if want_some == "n":
-                return True
-            # TODO: create requirements.txt
-            extra_modules = filter(
+            if not self.ask_confirmation(
+                    "I could not find any requirements file. Create one ?"):
+                return True  # No requirements is not an error
+            # Build requirements file
+            extra_modules = filter(  # Find non-django modules
                 lambda n: not n.startswith("django"),
                 self.opts['installed_apps'])
-            extra_deps = filter(
+            extra_deps = filter(  # Exclude embedded modules
                 lambda n: n not in self.opts['embedded_mods'],
                 extra_modules)
             required = ["django", ] + [f"django-{dep}" for dep in extra_deps]
@@ -244,19 +249,23 @@ class FindModules(Step):
     message = "Finding extra modules"
 
     def process(self):
-        embedded_mods = []
-        for child in self.opts['project_dir'].iterdir():
-            if child.is_dir():
-                apps = child / 'apps.py'
-                if apps.exists():
-                    embedded_mods.append(child.name)
+        # Find all dirs inside project that contains an 'apps.py' file
+        embedded_mods = [
+                mod.name for mod in self.opts['project_dir'].iterdir()
+                if mod.is_dir() and (mod / 'apps.py').exists()
+                ]
+        # Get confirmation
         print("found " + str(embedded_mods))
         self.lines_printed += 1
-        right = self.ask("Am I right ? (y/n)")
-        if right == "n":
+        if not self.ask_confirmation("Am I right ?"):
             return False
+        # Copy modules to 'django/'
+        for mod in embedded_mods:
+            shutil.copytree(
+                    self.opts['project_dir'] / mod,
+                    self.opts['settings_dir'] / mod)
+        # Store for use by other steps
         self.opts['embedded_mods'] = embedded_mods
-        # TODO: confirm and add setup embedded mods inside scripts/install
         return True
 
 

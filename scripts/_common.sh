@@ -87,7 +87,7 @@ django_install_from_folder() {
 django_setup_settings_and_urls() {
 	# Settings
         # Generate secret key
-	secret_key="generated_secret_key" #TODO!
+	secret_key="generated_secret_key" #TODO: generate a secret key!
 	# Import settings.py from 'conf' folder, if any.
 	if [ -e ../django/settings.py ] 
         then
