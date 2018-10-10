@@ -260,12 +260,21 @@ class FindModules(Step):
         if not self.ask_confirmation("Am I right ?"):
             return False
         # Copy modules to 'django/'
+        # Tweak the install script
+        install = list(map(
+            lambda l: l.strip('\n'),
+            open(
+                self.opts['target_dir'] / 'scripts/install'
+                ).readlines()))
+        line = install.index("# Copy your embedded modules") + 1
         for mod in embedded_mods:
             shutil.copytree(
                     self.opts['project_dir'] / mod,
                     self.opts['settings_dir'] / mod)
+            install.insert(line, f"django_install_from_folder '{mod}'")
         # Store for use by other steps
         self.opts['embedded_mods'] = embedded_mods
+        self.write_file("../scripts/install", "\n".join(install))
         return True
 
 
