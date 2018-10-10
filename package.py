@@ -290,7 +290,7 @@ class CreateManifest(Step):
         maintainer_name = self.ask("Your name ?")
         maintainer_mail = self.ask("Your mail ?")
         # Update the data
-        manifest = json.load(open("manifest.json"))
+        manifest = json.load(open("manifest.json", encoding="utf-8"))
         manifest['id'] = _id
         manifest['name'] = name
         manifest['description'] = {
@@ -300,7 +300,7 @@ class CreateManifest(Step):
             'name': maintainer_name,
             'email': maintainer_mail,
         }
-        new_content = json.dumps(manifest, indent=4)
+        new_content = json.dumps(manifest, indent=4, ensure_ascii=False)
         self.write_file("../manifest.json", new_content)
         return True
 
