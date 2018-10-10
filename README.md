@@ -12,8 +12,8 @@ Gunicorn is used to serve the application using a socket file.
 # Usage
 
   * Clone this repo and put your django related files inside django/
-  * If you have custom project settings, put them inside django/settings.py.
-  * Put your project url configuration under django/urls.py
-  * Put any embedded modules inside django/ as well
+    * If you have custom project settings, put them inside django/settings.py.
+    * Put your project url configuration under django/urls.py
+    * Put any embedded modules inside django/ as well
   * Tweak the install script with your specific steps
 
